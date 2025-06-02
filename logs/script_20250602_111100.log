@@ -1,0 +1,7 @@
+2025-06-02 11:11:00,570 — INFO — Starting the script...
+2025-06-02 11:11:00,570 — INFO — Reading file: data/lowes_data.csv
+2025-06-02 11:11:00,580 — INFO — Data shape: (95, 94)
+2025-06-02 11:11:00,580 — INFO — Data loaded successfully.
+2025-06-02 11:11:00,599 — INFO — Scaler fitted on selected columns.
+2025-06-02 11:11:00,606 — INFO — Data preprocessing completed.
+2025-06-02 11:11:00,623 — INFO — Script finished successfully.
