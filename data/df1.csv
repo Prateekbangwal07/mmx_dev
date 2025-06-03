@@ -1,0 +1,6 @@
+region,division,branch,date_time,A,B,C
+North,A,X,2025-06-01,10,5,2
+South,B,X,2025-06-02,20,15,4
+East,C,Y,2025-06-03,30,25,6
+West,D,Z,2025-06-04,40,35,8
+North,A,X,2025-06-05,50,45,10

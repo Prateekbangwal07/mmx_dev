@@ -1,0 +1,6 @@
+region,division,branch,time_stamp,D,E,F
+North,A,X,2025-06-04,100,50,20
+South,B,Y,2025-06-02,200,60,30
+East,C,Z,2025-06-03,300,70,40
+West,D,W,2025-06-04,400,80,50
+North,A,X,2025-06-05,500,90,60

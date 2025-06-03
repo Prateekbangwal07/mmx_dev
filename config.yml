@@ -1,0 +1,60 @@
+dataframes:
+  df1:
+    date_column: 'date_time'
+    granularity: 'WEEK'
+    value_columns: ['A', 'B']
+    merge_columns: ['region', 'division', 'branch']
+    aggregation: 'mean'
+    base_df_flag: True
+  df2:
+    date_column: 'time_stamp'
+    granularity: 'DAY'
+    value_columns: ['D', 'E']
+    merge_columns: ['region', 'division']
+    aggregation: 'sum'
+    base_df_flag: False
+  df3:
+    date_column: 'date_time'
+    granularity: 'MONTH'
+    value_columns: ['G']
+    merge_columns: ['region', 'branch']
+    aggregation: 'mean'
+    base_df_flag: False
+
+model_stage:
+  stage_1:
+    use_lagged_effects: true
+    lagged_features:
+      media_channel_clicks:
+        lags: 3
+        weights: [0.5, 0.25, 0.125]
+    independent_vars: 
+      - media_channel_clicks_weighted
+      - other_channel_clicks
+    output_column: leads
+    family: gaussian
+    draws: 1000
+    chains: 4
+    tune: 700
+    target_accept: 0.8
+
+  stage_2:
+    independent_vars: 
+      - leads
+      - campaign_spend
+    output_column: signups
+    family: gaussian
+    draws: 1000
+    chains: 4
+    tune: 500
+
+  stage_3:
+    independent_vars: 
+      - signups
+      - discounts
+    output_column: revenue
+    family: gaussian
+    draws: 2000
+    chains: 3
+    tune: 1000
+
