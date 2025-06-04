@@ -1,6 +1,11 @@
 import pandas as pd
-import bambi as bmb
 import yaml
+from sklearn.linear_model import LinearRegression, Lasso
+from sklearn.svm import SVR
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+import bambi as bmb
+import numpy as np
 
 
 class ModelConfig:
@@ -26,30 +31,23 @@ class ModelConfig:
 
 class ModelStage:
     """
-    Represents a single stage in the model pipeline, including lagged effects if specified.
+    Represents a single stage in the model pipeline with support for various model types.
     """
     def __init__(self, stage_name, config, data):
         self.stage_name = stage_name
         self.data = data
         self.output_column = config["output_column"]
-        self.family = config.get("family", "gaussian")
-        self.independent_vars = config.get("independent_vars", None)
-        self.formula = config.get("formula", None)
+        self.model_type = config["model_type"]  # Added to select model type
+        self.independent_vars = config.get("independent_vars", [])
+        self.hyperparams = config.get("hyperparams", {})
         self.use_lagged_effects = config.get("use_lagged_effects", False)
         self.lagged_features = config.get("lagged_features", {})
-        self.fit_params = {
-            "draws": config.get("draws", 1000),
-            "chains": config.get("chains", 4),
-            "tune": config.get("tune", 500)
-        }
-
-        if not self.formula and self.independent_vars:
-            self.formula = f"{self.output_column} ~ {' + '.join(self.independent_vars)}"
-        elif not self.formula:
-            raise ValueError(f"Stage {stage_name} requires either a formula or independent variables.")
-
+        self.fit_params = config.get("fit_params", {})
         self.model = None
         self.fit_result = None
+
+        if not self.independent_vars:
+            raise ValueError(f"Stage {stage_name} requires independent variables.")
 
     def add_weighted_lagged_effects(self):
         """
@@ -80,20 +78,40 @@ class ModelStage:
             print(f"Adding lagged effects for {self.stage_name}.")
             self.add_weighted_lagged_effects()
 
-        print(f"Fitting model for {self.stage_name}: {self.formula} with params {self.fit_params}")
-        
-        # Build and fit the model
+        X = self.data[self.independent_vars]
+        y = self.data[self.output_column]
+
+        print(f"Fitting {self.model_type} model for {self.stage_name} with params {self.hyperparams}")
+
+        # Fit model based on model_type
         try:
-            self.model = bmb.Model(self.formula, data=self.data, family=self.family)
-            self.fit_result = self.model.fit(**self.fit_params)
-            import pdb
-            pdb.set_trace()
-            # Generate predictions
-            predictions = self.model.predict(self.fit_result, kind="response")
-            if predictions is not None:
-                self.data[self.output_column] = predictions.mean(axis=0)
+            if self.model_type == "bambi":
+                self.model = bmb.Model(f"{self.output_column} ~ {' + '.join(self.independent_vars)}", data=self.data)
+                self.fit_result = self.model.fit(**self.fit_params)
+                #predictions = self.model.predict(self.fit_result, kind='response_params', data=self.data, inplace=True)
+                #import pdb
+                #pdb.set_trace()
+                self.data[self.output_column] = (self.fit_result.posterior["Intercept"].mean().values + self.fit_result.posterior["media_channel_clicks_weighted"].mean().values * self.data["media_channel_clicks_weighted"] + self.fit_result.posterior["other_channel_clicks"].mean().values * self.data["other_channel_clicks"])
+                #self.data[self.output_column] = predictions.mean(axis=0)
+
+            elif self.model_type == "linear_regression":
+                self.model = LinearRegression(**self.hyperparams)
+                self.model.fit(X, y)
+                self.data[self.output_column] = self.model.predict(X)
+
+            elif self.model_type == "lasso":
+                self.model = Lasso(**self.hyperparams)
+                self.model.fit(X, y)
+                self.data[self.output_column] = self.model.predict(X)
+
+            elif self.model_type == "svm":
+                self.model = SVR(**self.hyperparams)
+                self.model.fit(X, y)
+                self.data[self.output_column] = self.model.predict(X)
+
             else:
-                raise ValueError(f"Prediction returned None for stage {self.stage_name}. Check model or data.")
+                raise ValueError(f"Unsupported model type: {self.model_type}")
+
         except Exception as e:
             raise RuntimeError(f"Error fitting model for stage {self.stage_name}: {e}")
 
@@ -124,19 +142,11 @@ class ModelPipeline:
         for stage_name, stage in self.stages.items():
             print(f"Running stage: {stage_name}")
             stage.fit()
-            # Confirm the data after each stage
-            print(f"Data columns after {stage_name}: {stage.data.columns}")
-            self.data = stage.data  # Update pipeline data
-            for s in self.stages.values():
-                s.data = self.data
-
-
+            self.data = stage.data  # Update pipeline data for subsequent stages
+        print("Final data after stages completed ..\n", self.data)
 
 
 # Sample Data
-import pandas as pd
-import numpy as np
-
 # Generate sample customer-level data for 1000 customers over 2 months
 np.random.seed(42)  # For reproducibility
 

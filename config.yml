@@ -11,7 +11,7 @@ dataframes:
     granularity: 'DAY'
     value_columns: ['D', 'E']
     merge_columns: ['region', 'division']
-    aggregation: 'sum'
+    aggregation: 'mean'
     base_df_flag: False
   df3:
     date_column: 'date_time'
@@ -23,6 +23,7 @@ dataframes:
 
 model_stage:
   stage_1:
+    model_type: bambi
     use_lagged_effects: true
     lagged_features:
       media_channel_clicks:
@@ -32,29 +33,26 @@ model_stage:
       - media_channel_clicks_weighted
       - other_channel_clicks
     output_column: leads
-    family: gaussian
-    draws: 1000
-    chains: 4
-    tune: 700
-    target_accept: 0.8
+    hyperparams: {}
+    fit_params:
+      draws: 1000
+      chains: 4
+      tune: 700
 
   stage_2:
+    model_type: linear_regression
     independent_vars: 
       - leads
       - campaign_spend
-    output_column: signups
-    family: gaussian
-    draws: 1000
-    chains: 4
-    tune: 500
+    output_column: sign_ups
+    hyperparams: {}
 
   stage_3:
+    model_type: lasso
     independent_vars: 
-      - signups
+      - sign_ups
       - discounts
     output_column: revenue
-    family: gaussian
-    draws: 2000
-    chains: 3
-    tune: 1000
+    hyperparams:
+      alpha: 0.1
 
