@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import bambi as bmb
 import numpy as np
+import arviz as az
 
 
 class ModelConfig:
@@ -88,11 +89,10 @@ class ModelStage:
             if self.model_type == "bambi":
                 self.model = bmb.Model(f"{self.output_column} ~ {' + '.join(self.independent_vars)}", data=self.data)
                 self.fit_result = self.model.fit(**self.fit_params)
-                #predictions = self.model.predict(self.fit_result, kind='response_params', data=self.data, inplace=True)
-                #import pdb
-                #pdb.set_trace()
-                self.data[self.output_column] = (self.fit_result.posterior["Intercept"].mean().values + self.fit_result.posterior["media_channel_clicks_weighted"].mean().values * self.data["media_channel_clicks_weighted"] + self.fit_result.posterior["other_channel_clicks"].mean().values * self.data["other_channel_clicks"])
-                #self.data[self.output_column] = predictions.mean(axis=0)
+                predictions = self.model.predict(idata=self.fit_result, data=self.data, inplace=False)
+                final_preds = az.summary(predictions).reset_index()["mean"].values[-len(self.data):]
+                #self.data[self.output_column] = (self.fit_result.posterior["Intercept"].mean().values + self.fit_result.posterior["media_channel_clicks_weighted"].mean().values * self.data["media_channel_clicks_weighted"] + self.fit_result.posterior["other_channel_clicks"].mean().values * self.data["other_channel_clicks"])
+                self.data[self.output_column] = final_preds
 
             elif self.model_type == "linear_regression":
                 self.model = LinearRegression(**self.hyperparams)

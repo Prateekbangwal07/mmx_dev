@@ -1,3 +1,10 @@
+preprocessing:
+  sales_pre_processing:
+    selected_columns: ['Invoice Date', 'Customer #', 'Order#', 'Division', 'Branch Number', 'Branch Name', 'Branch Type','Region', 'District Name', 'Branch', 'Line Of Business', 'Digital Sale Flag', 
+      'Digital Source Lvl 1 ', 'Digital Source Lvl 2', 'Digital Source Site ID', 'PBS - Vendor', 'Open Date', 'Item #', 'Item Description', 'Price', 'Squares Shipped']
+    merged_columns: ['Invoice Date', 'Division', 'Region', 'District Name', 'Branch Type', 'Branch Number', 'Branch Name', 'Item #', 'Item Description']
+    value_columns: ['Customer #','Order#', 'Price', 'Squares Shipped']
+    value_agg_columns: ['nunique', 'nunique' ,'sum', 'sum']
 dataframes:
   df1:
     date_column: 'date_time'
